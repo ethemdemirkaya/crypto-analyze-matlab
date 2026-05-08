@@ -19,5 +19,10 @@ Thumbs.db
 .idea/
 .vscode/
 
+# MATLAB proje dosyaları (otomatik oluşturulur)
+*.prj
+resources/
+.gitattributes
+
 # .gitkeep dosyalarını koru
 !**/.gitkeep
