@@ -1,1 +1,23 @@
-Task.md
+# MATLAB
+*.asv
+*.m~
+*.mat
+*.mex*
+*.slxc
+
+# Proje çıktıları
+data/*.csv
+models/*.mat
+figures/*.png
+results/*.txt
+
+# Sistem
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# .gitkeep dosyalarını koru
+!**/.gitkeep
