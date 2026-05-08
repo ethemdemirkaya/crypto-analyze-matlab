@@ -88,15 +88,13 @@ function data = fetchBinanceData(symbol, interval, numCandles, forceRefresh)
 
     for i = 1:n
         row        = allRows{i};
-        OpenTime(i)  = datetime(toNum(row{1}) / 1000, ...
-                                'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+        OpenTime(i)  = datetime(toNum(row{1}) / 1000, 'ConvertFrom', 'posixtime');
         Open(i)      = toNum(row{2});
         High(i)      = toNum(row{3});
         Low(i)       = toNum(row{4});
         Close(i)     = toNum(row{5});
         Volume(i)    = toNum(row{6});
-        CloseTime(i) = datetime(toNum(row{7}) / 1000, ...
-                                'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+        CloseTime(i) = datetime(toNum(row{7}) / 1000, 'ConvertFrom', 'posixtime');
     end
 
     data = table(OpenTime, Open, High, Low, Close, Volume, CloseTime);
