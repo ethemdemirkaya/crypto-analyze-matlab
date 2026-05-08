@@ -21,27 +21,24 @@ function data = fetchBinanceData(symbol, interval, numCandles, forceRefresh)
     MAX_LIMIT   = 1000;
     CACHE_DIR   = 'data';
 
-    % Cache dosyası
     cacheFile = fullfile(CACHE_DIR, sprintf('%s_%s.csv', symbol, interval));
 
-    % Cache kontrolü
     if ~forceRefresh && isfile(cacheFile)
         fprintf('  [Cache] %s okunuyor...\n', cacheFile);
         data = readtable(cacheFile, 'TextType', 'string');
-        data.OpenTime  = datetime(data.OpenTime, 'InputFormat', 'yyyy-MM-dd HH:mm:ss');
+        data.OpenTime  = datetime(data.OpenTime,  'InputFormat', 'yyyy-MM-dd HH:mm:ss');
         data.CloseTime = datetime(data.CloseTime, 'InputFormat', 'yyyy-MM-dd HH:mm:ss');
         return;
     end
 
-    % Pagination ile veri çekme
-    allRows  = {};
-    fetched  = 0;
-    endTime  = [];   % ilk istekte boş (en güncel veriden başla)
+    allRows = {};
+    fetched = 0;
+    endTime = [];
 
     while fetched < numCandles
         batchSize = min(MAX_LIMIT, numCandles - fetched);
 
-        params = weboptions('Timeout', 30, 'ContentType', 'json');
+        opts   = weboptions('Timeout', 30, 'ContentType', 'json');
         urlStr = sprintf('%s?symbol=%s&interval=%s&limit=%d', ...
                          BASE_URL, symbol, interval, batchSize);
         if ~isempty(endTime)
@@ -49,7 +46,7 @@ function data = fetchBinanceData(symbol, interval, numCandles, forceRefresh)
         end
 
         try
-            raw = webread(urlStr, params);
+            raw = webread(urlStr, opts);
         catch ME
             error('fetchBinanceData:networkError', ...
                   'API isteği başarısız: %s\nURL: %s', ME.message, urlStr);
@@ -59,23 +56,20 @@ function data = fetchBinanceData(symbol, interval, numCandles, forceRefresh)
             break;
         end
 
-        % JSON yanıtı hata mesajı mı kontrol et
         if isstruct(raw) && isfield(raw, 'code')
             error('fetchBinanceData:apiError', ...
                   'Binance API hatası %d: %s', raw.code, raw.msg);
         end
 
-        % raw: cell array of cell arrays
-        batch = raw;
-        allRows = [batch; allRows];  %#ok<AGROW>  % kronolojik sıra için önüne ekle
+        batch   = raw;
+        allRows = [batch; allRows];  %#ok<AGROW>
         fetched = fetched + numel(batch);
 
-        % Bir sonraki batch için endTime: mevcut batch'in ilk mumun açılış zamanı - 1 ms
-        firstOpenTime = str2double(batch{1}{1});
-        endTime = firstOpenTime - 1;
+        % İlk mumun açılış timestamp'i (Binance JSON'da sayı olarak gelir)
+        endTime = toNum(batch{1}{1}) - 1;
 
         if numel(batch) < batchSize
-            break;  % API'nin döndüreceği daha veri yok
+            break;
         end
     end
 
@@ -83,7 +77,6 @@ function data = fetchBinanceData(symbol, interval, numCandles, forceRefresh)
         error('fetchBinanceData:noData', 'Veri çekilemedi: %s %s', symbol, interval);
     end
 
-    % Tablo oluşturma
     n = numel(allRows);
     OpenTime  = NaT(n, 1);
     Open      = zeros(n, 1);
@@ -94,27 +87,33 @@ function data = fetchBinanceData(symbol, interval, numCandles, forceRefresh)
     CloseTime = NaT(n, 1);
 
     for i = 1:n
-        row = allRows{i};
-        OpenTime(i)  = datetime(str2double(row{1}) / 1000, ...
+        row        = allRows{i};
+        OpenTime(i)  = datetime(toNum(row{1}) / 1000, ...
                                 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
-        Open(i)      = str2double(row{2});
-        High(i)      = str2double(row{3});
-        Low(i)       = str2double(row{4});
-        Close(i)     = str2double(row{5});
-        Volume(i)    = str2double(row{6});
-        CloseTime(i) = datetime(str2double(row{7}) / 1000, ...
+        Open(i)      = toNum(row{2});
+        High(i)      = toNum(row{3});
+        Low(i)       = toNum(row{4});
+        Close(i)     = toNum(row{5});
+        Volume(i)    = toNum(row{6});
+        CloseTime(i) = datetime(toNum(row{7}) / 1000, ...
                                 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
     end
 
     data = table(OpenTime, Open, High, Low, Close, Volume, CloseTime);
-
-    % Chronolojik sıralama
     data = sortrows(data, 'OpenTime');
 
-    % Cache kaydet
     if ~isfolder(CACHE_DIR)
         mkdir(CACHE_DIR);
     end
     writetable(data, cacheFile);
     fprintf('  [Cache] %d mum %s''e yazıldı.\n', height(data), cacheFile);
+end
+
+function n = toNum(x)
+% JSON'dan gelen değeri double'a çevirir (sayı ya da string olabilir)
+    if isnumeric(x)
+        n = double(x);
+    else
+        n = str2double(x);
+    end
 end

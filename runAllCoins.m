@@ -69,6 +69,7 @@ end
 fprintf('====================================================\n');
 
 % Karşılaştırmayı kaydet
+if ~isfolder('results'), mkdir('results'); end
 fid = fopen(fullfile('results', 'comparison.txt'), 'w');
 fprintf(fid, 'TÜM COİNLER KARŞILAŞTIRMA — %s\n\n', datestr(now));
 fprintf(fid, '%-12s %10s %10s %10s %8s %12s\n', ...

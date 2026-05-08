@@ -151,8 +151,8 @@ Bu çalışmada MATLAB ortamında uçtan uca bir LSTM tabanlı kripto fiyat tahm
 1. **Multi-feature girdi:** Kapanış yanı sıra Open, High, Low, Volume, RSI, MACD eklemek
 2. **Attention mekanizması:** Hangi geçmiş adımların önemli olduğunu öğrenme
 3. **Transformer tabanlı model:** LSTM ile karşılaştırma
-4. **Walk-forward validation:** Tek train/test split yerine kayan pencere değerlendirme
-5. **Early stopping:** Validation loss tabanlı eğitim durdurma
+4. **Hyperparameter optimizasyonu:** Bayesian veya grid search ile otomatik ayar
+5. **Gerçek zamanlı tahmin paneli:** Canlı veri akışı ile anlık güncelleme
 
 **Önemli Uyarı:** Bu proje akademik ve eğitim amaçlıdır. Elde edilen tahminler finansal yatırım kararı vermek için kullanılmamalıdır. Kripto piyasaları yüksek riske sahiptir.
 
