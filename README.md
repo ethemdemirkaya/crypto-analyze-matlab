@@ -3,8 +3,11 @@
 ![MATLAB](https://img.shields.io/badge/MATLAB-R2023a%2B-blue?logo=mathworks)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Deep Learning](https://img.shields.io/badge/Deep%20Learning-LSTM-orange)
+![Türkçe](https://img.shields.io/badge/README-Türkçe-red?logo=googletranslate)
 
 > **A MATLAB-based LSTM deep learning pipeline that fetches real-time historical data from Binance API and predicts cryptocurrency prices.**
+>
+> Türkçe dokümantasyon için: [README.tr.md](README.tr.md)
 
 ---
 
@@ -16,11 +19,15 @@
 - **Min-max normalization** computed exclusively on train set (no data leakage)
 - **Sliding-window sequence** creation for LSTM input
 - **Two-layer LSTM** architecture with dropout regularization
-- **Adam optimizer** with piecewise learning rate schedule
+- **Adam optimizer** with piecewise learning rate schedule + early stopping (validation patience 10)
 - **Multi-step recursive forecasting** (e.g. 30-day ahead)
 - **Five evaluation metrics:** RMSE, MAE, MAPE, R², Directional Accuracy
 - **Four publication-quality plots** saved as 300 DPI PNGs
+- **Naive / Drift / Mean baseline comparison** (`runBaseline.m`)
+- **Multi-feature OHLCV experiment** vs close-only (`runMultiFeature.m`)
+- **Walk-forward cross-validation** (`src/walkForwardValidation.m`)
 - **Multi-coin batch runner** (`runAllCoins.m`) for BTC, ETH, BNB comparison
+- **Programmatic GUI** with uifigure (`app/CryptoPredictorApp.m`)
 
 ---
 
@@ -37,7 +44,7 @@
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/crypto-analyze-matlab.git
+git clone https://github.com/ethemdemirkaya/crypto-analyze-matlab.git
 cd crypto-analyze-matlab
 ```
 
@@ -73,10 +80,35 @@ Key configuration parameters in `main.m`:
 ### Multi-Coin Batch Run
 
 ```matlab
-runAllCoins
+runAllCoins   % trains BTC + ETH + BNB, prints comparison table
 ```
 
-Trains models for BTC, ETH, BNB and produces a comparison table in `results/comparison.txt`.
+### Baseline Comparison
+
+```matlab
+runBaseline   % LSTM vs Naive, Drift, Mean — bar chart + table
+```
+
+### Multi-Feature Experiment (OHLCV vs Close-Only)
+
+```matlab
+runMultiFeature   % trains single-feature and 5-feature models, compares metrics
+```
+
+### Walk-Forward Cross-Validation
+
+```matlab
+results = walkForwardValidation(data.Close, 60, 5, 100);
+```
+
+### GUI Application
+
+```matlab
+addpath(genpath('src'))
+CryptoPredictorApp()
+```
+
+Provides dropdown menus for coin/interval selection, sliders for sequence length and hidden units, one-click fetch/train/predict, embedded axes, and a live metrics table.
 
 ---
 
@@ -84,25 +116,34 @@ Trains models for BTC, ETH, BNB and produces a comparison table in `results/comp
 
 ```
 crypto-analyze-matlab/
-├── main.m                         # Entry point — single coin
-├── runAllCoins.m                  # Batch runner — BTC, ETH, BNB
+├── main.m                              # Entry point — single coin pipeline
+├── runAllCoins.m                       # Batch trainer — BTC, ETH, BNB
+├── runBaseline.m                       # LSTM vs naive/drift/mean baseline
+├── runMultiFeature.m                   # OHLCV vs Close-only experiment
 ├── src/
-│   ├── fetchBinanceData.m         # Binance API data fetching + CSV cache
-│   ├── preprocessData.m           # Normalization + sliding window + split
-│   ├── buildLSTMModel.m           # LSTM architecture
-│   ├── trainModel.m               # Training + model save
-│   ├── predictFuture.m            # Recursive multi-step forecasting
-│   ├── evaluateModel.m            # RMSE, MAE, MAPE, R², Dir. Accuracy
-│   ├── plotResults.m              # 4 plots → 300 DPI PNG
-│   └── denormalize.m              # Min-max inverse transform
-├── data/                          # CSV cache (git-ignored)
-├── models/                        # Saved .mat models (git-ignored)
-├── figures/                       # Output plots (git-ignored)
-├── results/                       # Metric text files (git-ignored)
+│   ├── fetchBinanceData.m              # Binance API + CSV cache + pagination
+│   ├── preprocessData.m               # Normalize + sliding window + split
+│   ├── preprocessMultiFeature.m       # Multi-feature (OHLCV) preprocessing
+│   ├── buildLSTMModel.m               # Parametric LSTM architecture
+│   ├── trainModel.m                   # Train + validation split + model save
+│   ├── predictFuture.m                # Recursive multi-step forecasting
+│   ├── evaluateModel.m                # RMSE, MAE, MAPE, R², Directional Acc.
+│   ├── plotResults.m                  # 4 plot types → 300 DPI PNG
+│   ├── baselineForecast.m             # Naive / Drift / Mean baselines
+│   ├── walkForwardValidation.m        # Walk-forward expanding-window CV
+│   └── denormalize.m                  # Min-max inverse transform
+├── app/
+│   └── CryptoPredictorApp.m           # Programmatic uifigure GUI
+├── data/                              # CSV cache (git-ignored)
+├── models/                            # Saved .mat networks (git-ignored)
+├── figures/                           # Output PNG plots (git-ignored)
+├── results/                           # Metric text files (git-ignored)
 ├── docs/
-│   ├── report.md                  # Academic report (Turkish)
-│   └── architecture.md            # Architecture decisions
-└── LICENSE
+│   ├── report.md                      # Academic report (Turkish, IEEE format)
+│   └── architecture.md               # Design decisions & data-flow diagram
+├── README.md                          # This file (English)
+├── README.tr.md                       # Turkish documentation
+└── LICENSE                            # MIT
 ```
 
 ---
@@ -110,10 +151,10 @@ crypto-analyze-matlab/
 ## Model Architecture
 
 ```
-Input (sequence length × 1 features)
+Input (sequence length × numFeatures)
         │
   ┌─────▼──────┐
-  │  LSTM(100) │  ← learns long-term dependencies
+  │  LSTM(100) │  ← learns long-term temporal dependencies
   └─────┬──────┘
         │ Dropout(0.2)
   ┌─────▼──────┐
@@ -129,47 +170,51 @@ Input (sequence length × 1 features)
   Regression Layer (MSE loss)
 ```
 
-**Training:** Adam optimizer, 100 epochs, batch size 32, piecewise LR schedule (drop ×0.2 every 50 epochs), gradient clipping at 1, `Shuffle='never'` (critical for time series).
-
----
-
-## Results (Example)
-
-| Coin | RMSE | MAE | MAPE | R² | Dir. Acc. |
-|------|------|-----|------|----|-----------|
-| BTCUSDT | — | — | — | — | — |
-| ETHUSDT | — | — | — | — | — |
-| BNBUSDT | — | — | — | — | — |
-
-*Run `main.m` or `runAllCoins.m` to populate with real values.*
+**Training:** Adam optimizer · 100 epochs · batch 32 · piecewise LR (drop ×0.2 at epoch 50) · gradient clipping 1 · `Shuffle='never'` (critical for time series) · validation split 10% · early stopping patience 10.
 
 ---
 
 ## Generated Plots
 
-1. **Actual vs Predicted** — overlay of real and predicted prices on the test set
-2. **Residuals** — prediction error over time
-3. **Scatter Correlation** — actual vs predicted scatter with identity line
-4. **Future Forecast** — 30-day ahead prediction beyond the last known date
+| Plot | Description |
+|------|-------------|
+| `*_actual_vs_predicted.png` | Overlay of real and predicted prices on test set |
+| `*_residuals.png` | Prediction error (Predicted − Actual) over time |
+| `*_scatter.png` | Actual vs predicted scatter with identity line |
+| `*_forecast.png` | N-day ahead recursive forecast beyond last date |
+
+---
+
+## Results (Example)
+
+| Coin | RMSE | MAE | MAPE (%) | R² | Dir. Acc. (%) |
+|------|------|-----|----------|----|---------------|
+| BTCUSDT | — | — | — | — | — |
+| ETHUSDT | — | — | — | — | — |
+| BNBUSDT | — | — | — | — | — |
+
+*Run `main.m` or `runAllCoins.m` and check `results/` for real values.*
 
 ---
 
 ## Limitations & Disclaimer
 
-- **Academic purpose only.** This project is developed for a university course in Computational Mathematics. It is **not** financial advice.
-- Predictions are based solely on historical price patterns; fundamental events (regulations, exchange failures, etc.) are not modeled.
-- Multi-step recursive forecasting accumulates error; reliability decreases beyond 7 days.
+> **IMPORTANT:** This project is developed **for academic and educational purposes only** as part of a university Computational Mathematics course. The predictions generated by this model are **not financial advice** and must **not** be used to make real investment decisions.
+
+- Predictions rely solely on historical price patterns — regulatory events, exchange failures, and black-swan events are not modeled.
+- Recursive multi-step forecasting accumulates error; reliability degrades beyond 7 days.
+- The model performs within the distribution of training data; extreme outlier events will cause large errors.
 - Past performance does not guarantee future results.
 
 ---
 
 ## Future Work
 
-- Multi-feature input (OHLCV + RSI + MACD)
-- Attention mechanism and Transformer comparison
-- Walk-forward cross-validation
-- Early stopping based on validation loss
-- Sentiment analysis integration (social media / news)
+- Multi-feature OHLCV + RSI + MACD + Bollinger Bands inputs
+- Attention mechanism and Transformer architecture comparison
+- Hyperparameter optimization (Bayesian / grid search)
+- Sentiment analysis integration (social media / news feeds)
+- Real-time streaming prediction dashboard
 
 ---
 
@@ -183,4 +228,5 @@ MIT — see [LICENSE](LICENSE).
 
 **Ethem Demirkaya**  
 Software Engineering, 3rd Year  
-📧 ethemdemirkaya189@gmail.com
+📧 ethemdemirkaya189@gmail.com  
+🔗 [github.com/ethemdemirkaya](https://github.com/ethemdemirkaya)
