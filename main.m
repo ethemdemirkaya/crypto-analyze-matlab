@@ -67,8 +67,6 @@ YPredDenorm = denormalize(YPredNorm, normParams);
 YTestDenorm = denormalize(YTest(:), normParams);
 
 %  Test seti tarihlerini hesapla
-totalOffset    = config.sequenceLength + floor(height(data) * config.trainRatio) ...
-                 - floor((height(data) - config.sequenceLength) * config.trainRatio);
 testStartIdx   = height(data) - numel(YTestDenorm) + 1;
 testDates      = data.OpenTime(testStartIdx : testStartIdx + numel(YTestDenorm) - 1);
 fprintf('\n');
@@ -103,6 +101,20 @@ plotResults(YTestDenorm, YPredDenorm, testDates, config.symbol, 'figures/', ...
             futurePrices, futureDates);
 
 %% =========================================================
+%  9. BASELINE KARŞILAŞTIRMASI (Ek Tavsiye #3)
+%  =========================================================
+fprintf('[Baseline] Naive vs LSTM karşılaştırması...\n');
+[mNaive, ~] = baselineForecast(YTestDenorm, 'naive');
+fprintf('  LSTM   — RMSE: %.2f | MAPE: %.4f%%\n', metrics.RMSE, metrics.MAPE);
+fprintf('  Naive  — RMSE: %.2f | MAPE: %.4f%%\n', mNaive.RMSE, mNaive.MAPE);
+if metrics.RMSE < mNaive.RMSE
+    fprintf('  [OK] LSTM, Naive Baseline''dan %.1f%% daha iyi RMSE elde etti.\n\n', ...
+            (1 - metrics.RMSE/mNaive.RMSE)*100);
+else
+    fprintf('  [UYARI] LSTM, Naive Baseline''dan daha kötü performans gösterdi.\n\n');
+end
+
+%% =========================================================
 %  ÖZET
 %  =========================================================
 fprintf('\n============================================================\n');
@@ -110,4 +122,9 @@ fprintf('  İşlem tamamlandı.\n');
 fprintf('  Metrikler  : results/%s_metrics.txt\n', config.symbol);
 fprintf('  Grafikler  : figures/\n');
 fprintf('  Model      : models/\n');
+fprintf('\n  Diğer scriptler:\n');
+fprintf('    runAllCoins.m      — BTC/ETH/BNB toplu karşılaştırma\n');
+fprintf('    runBaseline.m      — Tüm baseline yöntemleriyle karşılaştırma\n');
+fprintf('    runMultiFeature.m  — OHLCV çok özellikli deney\n');
+fprintf('    CryptoPredictorApp — GUI uygulaması\n');
 fprintf('============================================================\n');

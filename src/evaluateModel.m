@@ -52,8 +52,9 @@ function metrics = evaluateModel(YTrue, YPred, savePath)
 
     % Dosyaya kaydet
     if nargin >= 3 && ~isempty(savePath)
-        if ~isfolder(fileparts(savePath))
-            mkdir(fileparts(savePath));
+        dirPart = fileparts(savePath);
+        if ~isempty(dirPart) && ~isfolder(dirPart)
+            mkdir(dirPart);
         end
         fid = fopen(savePath, 'w');
         fprintf(fid, 'MODEL PERFORMANS METRİKLERİ\n');
