@@ -32,7 +32,7 @@ function [XTrain, YTrain, XTest, YTest, normParams] = preprocessData(prices, seq
     % --- Sliding window sequence oluşturma ---
     numSamples = N - sequenceLength;
     X = cell(numSamples, 1);
-    Y = zeros(1, numSamples);
+    Y = zeros(numSamples, 1);
 
     for i = 1:numSamples
         X{i} = pricesNorm(i : i + sequenceLength - 1)';   % [1 x seqLen]

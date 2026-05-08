@@ -52,7 +52,7 @@ function [XTrain, YTrain, XTest, YTest, normParams] = preprocessMultiFeature(dat
     % Sliding window: [numFeatures x seqLen] giriş → 1 çıkış (kapanış)
     numSamples = N - sequenceLength;
     X = cell(numSamples, 1);
-    Y = zeros(1, numSamples);
+    Y = zeros(numSamples, 1);
 
     for i = 1:numSamples
         X{i} = normMatrix(i : i + sequenceLength - 1, :)';   % [numFeatures x seqLen]

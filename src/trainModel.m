@@ -32,8 +32,10 @@ function net = trainModel(layers, XTrain, YTrain, symbol, customOptions, valRati
 
     XVal   = XTrain(nTr+1:end);
     YVal   = YTrain(nTr+1:end);
+    YVal   = YVal(:);
     XTr    = XTrain(1:nTr);
     YTr    = YTrain(1:nTr);
+    YTr    = YTr(:);
 
     fprintf('  Eğitim: %d, Validation: %d örnek\n', numel(XTr), numel(XVal));
 

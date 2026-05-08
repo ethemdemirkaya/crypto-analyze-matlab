@@ -58,7 +58,7 @@ function results = walkForwardValidation(prices, sequenceLength, numFolds, hidde
         % Sequence oluştur
         nSeq = numel(allNorm) - sequenceLength;
         X    = cell(nSeq, 1);
-        Y    = zeros(1, nSeq);
+        Y    = zeros(nSeq, 1);
         for i = 1:nSeq
             X{i} = allNorm(i : i + sequenceLength - 1)';
             Y(i) = allNorm(i + sequenceLength);
