@@ -20,7 +20,7 @@ data = fetchBinanceData(SYMBOL, INTERVAL, 1500);
 
 %% --- Deney 1: Tek özellik (Close) ---
 fprintf('[1/2] Tek özellik modeli (Close only)...\n');
-[XTr1, YTr1, XTe1, YTe1, np1] = preprocessData(data.Close, SEQ_LEN, 0.8);
+[XTr1, YTr1, XTe1, YTe1, np1] = preprocessData(data.Close, SEQ_LEN, 0.8, 'zscore');
 
 layers1 = buildLSTMModel(1, HIDDEN);
 net1    = trainModel(layers1, XTr1, YTr1, [SYMBOL '_single']);
@@ -32,7 +32,7 @@ m1      = evaluateModel(YTestD1, YPredD1);
 
 %% --- Deney 2: Çok özellik (OHLCV) ---
 fprintf('\n[2/2] Çok özellik modeli (OHLCV)...\n');
-[XTr2, YTr2, XTe2, YTe2, np2] = preprocessMultiFeature(data, FEATURES, SEQ_LEN, 0.8);
+[XTr2, YTr2, XTe2, YTe2, np2] = preprocessMultiFeature(data, FEATURES, SEQ_LEN, 0.8, 'zscore');
 
 numF    = numel(FEATURES);
 layers2 = buildLSTMModel(numF, HIDDEN);
@@ -42,8 +42,9 @@ YPred2  = predict(net2, XTe2);
 
 % Close fiyatını denormalize et (OHLCV normParams)
 closeIdx = find(strcmpi(FEATURES, 'Close'));
-np2close.minVal = np2.minVals(closeIdx);
-np2close.maxVal = np2.maxVals(closeIdx);
+np2close.method = 'zscore';
+np2close.meanVal = np2.meanVals(closeIdx);
+np2close.stdVal  = np2.stdVals(closeIdx);
 
 YPredD2 = denormalize(YPred2(:), np2close);
 YTestD2 = denormalize(YTe2(:), np2close);

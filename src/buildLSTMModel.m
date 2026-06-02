@@ -17,10 +17,10 @@ function layers = buildLSTMModel(numFeatures, numHiddenUnits, useBiLSTM)
     if nargin < 3, useBiLSTM     = false; end
 
     if useBiLSTM
-        firstLayer = bilstmLayer(numHiddenUnits, 'OutputMode', 'last', 'Name', 'lstm1');
+        firstLayer = bilstmLayer(numHiddenUnits, 'OutputMode', 'sequence', 'Name', 'lstm1');
         typeStr    = sprintf('BiLSTM(%d)', numHiddenUnits);
     else
-        firstLayer = lstmLayer(numHiddenUnits, 'OutputMode', 'last', 'Name', 'lstm1');
+        firstLayer = lstmLayer(numHiddenUnits, 'OutputMode', 'sequence', 'Name', 'lstm1');
         typeStr    = sprintf('LSTM(%d)', numHiddenUnits);
     end
 

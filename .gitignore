@@ -26,3 +26,6 @@ resources/
 
 # .gitkeep dosyalarını koru
 !**/.gitkeep
+
+# Hoca sunum rehberi
+SUNUM_REHBERI.md

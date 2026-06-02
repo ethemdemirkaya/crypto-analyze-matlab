@@ -1,4 +1,4 @@
-function [XTrain, YTrain, XTest, YTest, normParams] = preprocessMultiFeature(data, features, sequenceLength, trainRatio)
+function [XTrain, YTrain, XTest, YTest, normParams] = preprocessMultiFeature(data, features, sequenceLength, trainRatio, normMethod)
 % PREPROCESSMULTIFEATURE - Çok özellikli (OHLCV) LSTM girdi hazırlığı
 %
 % Girdi:
@@ -7,17 +7,19 @@ function [XTrain, YTrain, XTest, YTest, normParams] = preprocessMultiFeature(dat
 %                    Örn: {'Open','High','Low','Close','Volume'}
 %   sequenceLength - Girdi pencere uzunluğu (örn. 60)
 %   trainRatio     - Eğitim verisi oranı (örn. 0.8)
+%   normMethod     - Normalizasyon yöntemi: 'zscore' (varsayılan) veya 'minmax'
 %
 % Çıktı:
 %   XTrain     - cell array, her hücre [numFeatures x sequenceLength]
 %   YTrain     - [1 x Ntrain] kapanış fiyatı etiket vektörü (normalize)
 %   XTest      - cell array, her hücre [numFeatures x sequenceLength]
 %   YTest      - [1 x Ntest] kapanış fiyatı etiket vektörü (normalize)
-%   normParams - struct: minVals, maxVals (her özellik için)
+%   normParams - struct: minVals, maxVals VEYA meanVals, stdVals, ve method
 %
-% Örnek:
-%   feats = {'Open','High','Low','Close','Volume'};
-%   [XTr, YTr, XTe, YTe, np] = preprocessMultiFeature(data, feats, 60, 0.8);
+
+    if nargin < 5 || isempty(normMethod)
+        normMethod = 'zscore';
+    end
 
     numFeatures = numel(features);
     N           = height(data);
@@ -32,15 +34,22 @@ function [XTrain, YTrain, XTest, YTest, normParams] = preprocessMultiFeature(dat
     trainEnd = floor(N * trainRatio);
     trainMat = rawMatrix(1:trainEnd, :);
 
-    normParams.minVals = min(trainMat, [], 1);   % [1 x numFeatures]
-    normParams.maxVals = max(trainMat, [], 1);
+    normParams.method   = normMethod;
     normParams.features = features;
 
-    % Min-max normalize
-    range = normParams.maxVals - normParams.minVals;
-    range(range == 0) = 1;   % sıfıra bölünmeyi önle
-    normMatrix = (rawMatrix - normParams.minVals) ./ range;
-    normMatrix = max(0, min(1, normMatrix));
+    if strcmpi(normMethod, 'minmax')
+        normParams.minVals = min(trainMat, [], 1);   % [1 x numFeatures]
+        normParams.maxVals = max(trainMat, [], 1);
+        range = normParams.maxVals - normParams.minVals;
+        range(range == 0) = 1;   % sıfıra bölünmeyi önle
+        normMatrix = (rawMatrix - normParams.minVals) ./ range;
+        normMatrix = max(0, min(1, normMatrix));
+    else % zscore
+        normParams.meanVals = mean(trainMat, 1);
+        normParams.stdVals  = std(trainMat, 0, 1);
+        normParams.stdVals(normParams.stdVals == 0) = 1;
+        normMatrix = (rawMatrix - normParams.meanVals) ./ normParams.stdVals;
+    end
 
     % Kapanış fiyatı (hedef değişken) indeksi
     closeIdx = find(strcmpi(features, 'Close'));
@@ -67,6 +76,6 @@ function [XTrain, YTrain, XTest, YTest, normParams] = preprocessMultiFeature(dat
     XTest  = X(splitIdx+1:end);
     YTest  = Y(splitIdx+1:end);
 
-    fprintf('  Multi-feature: %d özellik, %d eğitim, %d test örneği\n', ...
-            numFeatures, numel(XTrain), numel(XTest));
+    fprintf('  Multi-feature (%s): %d özellik, %d eğitim, %d test örneği\n', ...
+            normMethod, numFeatures, numel(XTrain), numel(XTest));
 end

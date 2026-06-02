@@ -55,14 +55,15 @@ if config.useIndicators
     dataFeat = computeIndicators(data);
     features = {'Close', 'EMA20', 'RSI14', 'MACD', 'MACDSignal', 'BBWidth', 'VolEMA10'};
     [XTrain, YTrain, XTest, YTest, normParams] = preprocessMultiFeature( ...
-        dataFeat, features, config.sequenceLength, config.trainRatio);
+        dataFeat, features, config.sequenceLength, config.trainRatio, 'zscore');
     numFeatures = numel(features);
     closeIdx    = 1;
-    np_close.minVal = normParams.minVals(closeIdx);
-    np_close.maxVal = normParams.maxVals(closeIdx);
+    np_close.method = 'zscore';
+    np_close.meanVal = normParams.meanVals(closeIdx);
+    np_close.stdVal  = normParams.stdVals(closeIdx);
 else
     [XTrain, YTrain, XTest, YTest, normParams] = preprocessData( ...
-        data.Close, config.sequenceLength, config.trainRatio);
+        data.Close, config.sequenceLength, config.trainRatio, 'zscore');
     numFeatures = 1;
     np_close    = normParams;
     closeIdx    = 1;
@@ -104,7 +105,7 @@ metrics = evaluateModel(YTestDenorm, YPredDenorm, ...
 %  =========================================================
 fprintf('[7/7] Gelecek %d gün tahmini yapılıyor...\n', config.forecastDays);
 [futurePrices, upperCI, lowerCI] = predictFuture( ...
-    net, XTest{end}, config.forecastDays, np_close, metrics.RMSE, closeIdx);
+    net, XTest{end}, config.forecastDays, normParams, metrics.RMSE, closeIdx);
 
 lastDate    = data.OpenTime(end);
 futureDates = lastDate + days(1:config.forecastDays);

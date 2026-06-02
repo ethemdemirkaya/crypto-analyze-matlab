@@ -46,14 +46,15 @@ function results = walkForwardValidation(prices, sequenceLength, numFolds, hidde
         fprintf('\n  Fold %d/%d — eğitim: %d, test: %d örnek\n', ...
                 k, numFolds, numel(trainPrices), numel(testPrices) - sequenceLength);
 
-        % Normalizasyon (sadece train üzerinden)
-        pMin = min(trainPrices);
-        pMax = max(trainPrices);
-        normParams.minVal = pMin;
-        normParams.maxVal = pMax;
+        % Normalizasyon (Z-Score, sadece train üzerinden)
+        pMean = mean(trainPrices);
+        pStd  = std(trainPrices);
+        if pStd == 0, pStd = 1; end
+        normParams.method = 'zscore';
+        normParams.meanVal = pMean;
+        normParams.stdVal  = pStd;
 
-        allNorm = (prices(1:testEndIdx) - pMin) / (pMax - pMin);
-        allNorm = max(0, min(1, allNorm));
+        allNorm = (prices(1:testEndIdx) - pMean) / pStd;
 
         % Sequence oluştur
         nSeq = numel(allNorm) - sequenceLength;

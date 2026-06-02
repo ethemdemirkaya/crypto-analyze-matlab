@@ -1,0 +1,18 @@
+{
+
+  "permissions": {
+    "defaultMode": "auto",
+    "allow": [
+      "Bash(New-Item -ItemType File \"D:\\\\Github\\\\crypto-analyze-matlab\\\\data\\\\.gitkeep\" -Force)",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType File \"D:\\\\Github\\\\crypto-analyze-matlab\\\\models\\\\.gitkeep\" -Force)",
+      "Bash(New-Item -ItemType File \"D:\\\\Github\\\\crypto-analyze-matlab\\\\figures\\\\.gitkeep\" -Force)",
+      "Bash(New-Item -ItemType File \"D:\\\\Github\\\\crypto-analyze-matlab\\\\results\\\\.gitkeep\" -Force)",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git rm *)"
+    ]
+  }
+}
